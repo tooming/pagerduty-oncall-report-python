@@ -8,9 +8,9 @@ into weekday, weekend and bank-holiday buckets, with an hourly rate applied to e
 
 ## Just want total on-call hours per engineer?
 
-If you don't need the weekday/weekend/bank-holiday/pricing breakdown — just a per-engineer hours
-total across your schedules — use [oncall_hours.py](oncall_hours.py) instead. It's a single
-stdlib-only file: no `pip install`, no cloning this repo, no config file.
+If you don't need the pricing/CSV/PDF machinery — just a per-engineer hours total across your
+schedules, split out by Estonian public holiday — use [oncall_hours.py](oncall_hours.py) instead.
+It's a single stdlib-only file: no `pip install`, no cloning this repo, no config file.
 
 ```bash
 export PD_AUTH_TOKEN=<YourSecretTokenHere>
@@ -21,15 +21,28 @@ python3 oncall_hours.py --since 2026-07-01 --until 2026-08-01
 Output:
 
 ```
-Martin Tooming	185.50
-Someone Else	142.00
+Name                         Total Hours    Bank Holiday Hours
+Martin Tooming                    185.50                 24.00
+Someone Else                      142.00                  0.00
 ```
 
-Defaults to last calendar month if `--since`/`--until` are omitted, and to all schedules on the
-account if `-s/--schedules` is omitted (comma-separated schedule IDs to scope it). Set
-`PD_API_BASE_URL=https://api.eu.pagerduty.com` for EU-hosted accounts. The rest of this README is
-about the full `pd-report` package (pricing, CSV/PDF output, bank holiday calendars, etc.) — skip
-it if `oncall_hours.py` is all you need.
+All three of these are configurable:
+
+- **Time range**: `--since`/`--until` (bare date like `2026-07-01`, or a full RFC3339 timestamp).
+  Defaults to last calendar month if both are omitted.
+- **Schedules**: `-s/--schedules` (comma-separated schedule IDs). Defaults to `all` schedules on
+  the account, summed together per engineer.
+- **API endpoint**: `--api-base-url`, or the `PD_API_BASE_URL` env var. Defaults to
+  `https://api.pagerduty.com`; EU-hosted accounts need `https://api.eu.pagerduty.com` (and a
+  token generated on that cluster — tokens aren't portable between clusters).
+
+Estonian public holiday dates are hardcoded in the script (`ESTONIAN_PUBLIC_HOLIDAYS`), sourced
+from the same data as [pd_report/assets/calendars/holidays_calendar.ee.*.yml](pd_report/assets/calendars),
+covering 2023–2026. Asking for a date outside that range is a hard error rather than a silently
+wrong answer — add the year to both places (script + `.yml`) when it runs out.
+
+The rest of this README is about the full `pd-report` package (pricing, CSV/PDF output, every
+bundled country's calendar, etc.) — skip it if `oncall_hours.py` is all you need.
 
 ## Installation
 
