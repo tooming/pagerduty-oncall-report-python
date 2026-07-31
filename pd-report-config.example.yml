@@ -1,3 +1,8 @@
+# PagerDuty API base URL. Defaults to the US/global cluster; EU-hosted
+# accounts must set this to https://api.eu.pagerduty.com
+# (can also be set via the PD_API_BASE_URL env var, which takes priority).
+apiBaseUrl: https://api.pagerduty.com
+
 # Explicitly set report time range (RFC822: "02 Jan 06 15:04 MST")
 reportTimeRange:
   start: 01 Jan 20 00:00 UTC

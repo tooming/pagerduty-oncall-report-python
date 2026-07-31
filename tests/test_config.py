@@ -2,7 +2,40 @@ import datetime as dt
 
 import pytest
 
-from pd_report.config import Configuration, ConfigError, RotationExcludedHoursDay, RotationPriceDay, RotationPrices, RotationUser, parse_rfc822
+from pd_report.config import Configuration, ConfigError, RotationExcludedHoursDay, RotationPriceDay, RotationPrices, RotationUser, load_config, parse_rfc822
+
+
+def test_load_config_api_base_url_defaults_to_us(tmp_path, monkeypatch):
+    config_file = tmp_path / "config.yml"
+    config_file.write_text("rotationPrices: {}\n")
+    monkeypatch.setenv("PD_AUTH_TOKEN", "token")
+    monkeypatch.delenv("PD_API_BASE_URL", raising=False)
+
+    config = load_config(str(config_file))
+
+    assert config.api_base_url == "https://api.pagerduty.com"
+
+
+def test_load_config_api_base_url_from_yaml(tmp_path, monkeypatch):
+    config_file = tmp_path / "config.yml"
+    config_file.write_text("apiBaseUrl: https://api.eu.pagerduty.com\n")
+    monkeypatch.setenv("PD_AUTH_TOKEN", "token")
+    monkeypatch.delenv("PD_API_BASE_URL", raising=False)
+
+    config = load_config(str(config_file))
+
+    assert config.api_base_url == "https://api.eu.pagerduty.com"
+
+
+def test_load_config_api_base_url_env_overrides_yaml(tmp_path, monkeypatch):
+    config_file = tmp_path / "config.yml"
+    config_file.write_text("apiBaseUrl: https://api.eu.pagerduty.com\n")
+    monkeypatch.setenv("PD_AUTH_TOKEN", "token")
+    monkeypatch.setenv("PD_API_BASE_URL", "https://api.pagerduty.com")
+
+    config = load_config(str(config_file))
+
+    assert config.api_base_url == "https://api.pagerduty.com"
 
 
 def test_parse_rfc822_utc():

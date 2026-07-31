@@ -114,6 +114,7 @@ class PricesInfo:
 @dataclass
 class Configuration:
     pd_auth_token: str = ""
+    api_base_url: str = "https://api.pagerduty.com"
     default_holiday_calendar: str = ""
     default_user_timezone: str = ""
     report_time_range: ReportTimeRange = field(default_factory=ReportTimeRange)
@@ -212,6 +213,9 @@ def load_config(config_path: str | None) -> Configuration:
     raw = yaml.safe_load(raw_text) or {}
 
     config = Configuration()
+    config.api_base_url = os.environ.get(
+        "PD_API_BASE_URL", raw.get("apiBaseUrl", "https://api.pagerduty.com")
+    ).rstrip("/")
     config.default_holiday_calendar = raw.get("defaultHolidayCalendar", "")
     config.default_user_timezone = raw.get("defaultUserTimezone", "")
 

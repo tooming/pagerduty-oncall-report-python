@@ -56,10 +56,20 @@ Set your PagerDuty API token in the environment:
 export PD_AUTH_TOKEN=<YourSecretTokenHere>
 ```
 
+PagerDuty runs separate US and EU clusters with different API hosts. This defaults to the US/global
+cluster (`https://api.pagerduty.com`); EU-hosted accounts need to override it, either in the config file
+(`apiBaseUrl: https://api.eu.pagerduty.com`) or via an env var, which takes priority over the config file:
+
+```bash
+export PD_API_BASE_URL=https://api.eu.pagerduty.com
+```
+
 Configure the application in a YAML file (see [pd-report-config.example.yml](pd-report-config.example.yml)),
 passed via `--config` (default `~/.pd-report-config.yml`):
 
 ```yml
+apiBaseUrl: https://api.pagerduty.com # or https://api.eu.pagerduty.com for EU accounts
+
 reportTimeRange:
   start: 01 Jan 20 00:00 UTC
   end: 01 Feb 20 00:00 UTC

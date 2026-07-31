@@ -25,7 +25,7 @@ def _load(ctx: click.Context):
     except ConfigError as exc:
         raise click.ClickException(str(exc))
     try:
-        client = PagerDutyClient(config.pd_auth_token)
+        client = PagerDutyClient(config.pd_auth_token, base_url=config.api_base_url)
     except PagerDutyAPIError as exc:
         raise click.ClickException(str(exc))
     return config, client
