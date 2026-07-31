@@ -6,6 +6,31 @@ A Python port of [go-pagerduty-oncall-report](https://github.com/form3tech-oss/g
 Generates a report for on-call rotations using the PagerDuty API: hours/days worked broken down
 into weekday, weekend and bank-holiday buckets, with an hourly rate applied to each bucket.
 
+## Just want total on-call hours per engineer?
+
+If you don't need the weekday/weekend/bank-holiday/pricing breakdown — just a per-engineer hours
+total across your schedules — use [oncall_hours.py](oncall_hours.py) instead. It's a single
+stdlib-only file: no `pip install`, no cloning this repo, no config file.
+
+```bash
+export PD_AUTH_TOKEN=<YourSecretTokenHere>
+curl -sO https://raw.githubusercontent.com/tooming/pagerduty-oncall-report-python/main/oncall_hours.py
+python3 oncall_hours.py --since 2026-07-01 --until 2026-08-01
+```
+
+Output:
+
+```
+Martin Tooming	185.50
+Someone Else	142.00
+```
+
+Defaults to last calendar month if `--since`/`--until` are omitted, and to all schedules on the
+account if `-s/--schedules` is omitted (comma-separated schedule IDs to scope it). Set
+`PD_API_BASE_URL=https://api.eu.pagerduty.com` for EU-hosted accounts. The rest of this README is
+about the full `pd-report` package (pricing, CSV/PDF output, bank holiday calendars, etc.) — skip
+it if `oncall_hours.py` is all you need.
+
 ## Installation
 
 ```bash
