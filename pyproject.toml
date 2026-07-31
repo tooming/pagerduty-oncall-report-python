@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pd-report"
+version = "0.1.0"
+description = "Generate PagerDuty on-call rotation reports (Python port of go-pagerduty-oncall-report)"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "Apache-2.0" }
+dependencies = [
+    "click>=8.1",
+    "PyYAML>=6.0",
+    "requests>=2.28",
+    "fpdf2>=2.7",
+]
+
+[project.scripts]
+pd-report = "pd_report.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["pd_report*"]
+
+[tool.setuptools.package-data]
+pd_report = ["assets/calendars/*.yml"]

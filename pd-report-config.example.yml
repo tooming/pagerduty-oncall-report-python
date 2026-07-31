@@ -1,0 +1,55 @@
+# Explicitly set report time range (RFC822: "02 Jan 06 15:04 MST")
+reportTimeRange:
+  start: 01 Jan 20 00:00 UTC
+  end: 01 Feb 20 00:00 UTC
+
+# Rotation general information
+rotationInfo:
+  dailyRotationStartsAt: 8
+  checkRotationChangeEvery: 30 # minutes
+
+defaultUserTimezone: Europe/London # default user timezone for users that are in the report but their account has been excluded from PagerDuty
+
+defaultHolidayCalendar: uk # default calendar to use for users not specified in config, allows you to only define users with different calendars. If not set, users without an explicit entry below are rejected.
+
+# Rotation excluded hours by day type
+rotationExcludedHours:
+  - day: weekday
+    excludedStartsAt: 9
+    excludedEndsAt: 17
+
+# Rotation prices by day type
+rotationPrices:
+  currency: £
+  daysInfo:
+    - day: weekday
+      price: 1
+    - day: weekend
+      price: 2
+    - day: bankholiday
+      price: 2
+
+# List of users to be considered for the rotation
+# Each one should be specifying a calendar for the bank holidays
+# and the ID defined in PagerDuty
+rotationUsers:
+  - name: "User 1"
+    holidaysCalendar: uk
+    userId: P11A11B
+  - name: "User 2"
+    holidaysCalendar: uk
+    userId: P22A22B
+  - name: "Roger Solé"
+    holidaysCalendar: sp_premia
+    userId: P33A33B
+
+# Time range overrides on a per-schedule basis (RFC822)
+scheduleTimeRangeOverrides:
+  - id: ABCDEFG
+    start: 01 Jan 20 00:00 UTC
+    end: 21 Jan 20 00:00 UTC
+
+# List of schedule IDs that can be ignored when generating the report
+schedulesToIgnore:
+  - SCHED_1
+  - SCHED_2
