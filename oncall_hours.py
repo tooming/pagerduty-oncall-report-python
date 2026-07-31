@@ -125,7 +125,7 @@ def main() -> None:
 
     print(f"On-call hours from {since} to {until} ({base_url})", file=sys.stderr)
     for name in sorted(totals):
-        print(f"{name}\t{totals[name]:.2f}")
+        print(f"{name}\t{round(totals[name]):.0f}")
 
 
 if __name__ == "__main__":

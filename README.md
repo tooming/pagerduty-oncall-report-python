@@ -21,8 +21,8 @@ python3 oncall_hours.py --since 2026-07-01 --until 2026-08-01
 Output:
 
 ```
-Martin Tooming	185.50
-Someone Else	142.00
+Martin Tooming	186
+Someone Else	142
 ```
 
 All three of these are configurable:
