@@ -1,15 +1,8 @@
 #!/usr/bin/env python3
 """Sum PagerDuty on-call hours per engineer, across one or more schedules.
 
-Reports total hours per engineer, plus how many of those hours fell on an
-Estonian public holiday.
-
 Standalone, stdlib-only (no pip install needed). Requires PD_AUTH_TOKEN in
 the environment.
-
-Bank-holiday hours are computed against each schedule's own timezone (not
-per-user), since that's what the API gives us without extra lookups. Fine
-as long as everyone on the schedule is roughly in that timezone.
 
 Usage:
     python3 oncall_hours.py --since 2026-07-01 --until 2026-08-01
@@ -27,46 +20,8 @@ import sys
 import urllib.error
 import urllib.parse
 import urllib.request
-from zoneinfo import ZoneInfo
 
 DEFAULT_API_BASE_URL = "https://api.pagerduty.com"
-
-# Estonian public holidays, sourced from https://publicholidays.ee — same
-# dates as pd_report/assets/calendars/holidays_calendar.ee.*.yml in this
-# repo's full package. Add a year here (and to the .yml file, to keep them
-# in sync) when it's missing; a date outside this range is a hard error
-# rather than being silently skipped.
-ESTONIAN_PUBLIC_HOLIDAYS: dict[int, set[str]] = {
-    2023: {
-        "2023-01-01", "2023-02-24", "2023-04-07", "2023-04-09", "2023-05-01",
-        "2023-05-28", "2023-06-23", "2023-06-24", "2023-08-20", "2023-12-24",
-        "2023-12-25", "2023-12-26",
-    },
-    2024: {
-        "2024-01-01", "2024-02-24", "2024-03-29", "2024-03-31", "2024-05-01",
-        "2024-05-19", "2024-06-23", "2024-06-24", "2024-08-20", "2024-12-24",
-        "2024-12-25", "2024-12-26",
-    },
-    2025: {
-        "2025-01-01", "2025-02-24", "2025-04-18", "2025-04-20", "2025-05-01",
-        "2025-06-08", "2025-06-23", "2025-06-24", "2025-08-20", "2025-12-24",
-        "2025-12-25", "2025-12-26",
-    },
-    2026: {
-        "2026-01-01", "2026-02-24", "2026-04-03", "2026-04-05", "2026-05-01",
-        "2026-05-24", "2026-06-23", "2026-06-24", "2026-08-20", "2026-12-24",
-        "2026-12-25", "2026-12-26",
-    },
-}
-
-
-def is_bank_holiday(day: dt.date) -> bool:
-    if day.year not in ESTONIAN_PUBLIC_HOLIDAYS:
-        sys.exit(
-            f"no Estonian public holiday data for {day.year} in this script "
-            f"(have {sorted(ESTONIAN_PUBLIC_HOLIDAYS)}) - add it to ESTONIAN_PUBLIC_HOLIDAYS"
-        )
-    return day.isoformat() in ESTONIAN_PUBLIC_HOLIDAYS[day.year]
 
 
 def api_get(base_url: str, path: str, token: str, params: dict | None = None) -> dict:
@@ -100,11 +55,10 @@ def list_schedule_ids(base_url: str, token: str) -> list[str]:
     return schedule_ids
 
 
-def get_schedule_detail(base_url: str, schedule_id: str, since: str, until: str, token: str) -> tuple[str, list[dict]]:
+def get_rendered_entries(base_url: str, schedule_id: str, since: str, until: str, token: str) -> list[dict]:
     payload = api_get(base_url, f"/schedules/{schedule_id}", token, {"since": since, "until": until})
-    schedule = payload["schedule"]
-    final_schedule = schedule.get("final_schedule") or {}
-    return schedule.get("time_zone", "UTC"), final_schedule.get("rendered_schedule_entries", [])
+    final_schedule = payload["schedule"].get("final_schedule") or {}
+    return final_schedule.get("rendered_schedule_entries", [])
 
 
 def parse_timestamp(value: str) -> dt.datetime:
@@ -123,22 +77,6 @@ def default_last_month() -> tuple[dt.datetime, dt.datetime]:
         dt.datetime.combine(last_month_start, dt.time.min, tzinfo=dt.timezone.utc),
         dt.datetime.combine(last_month_end, dt.time.min, tzinfo=dt.timezone.utc),
     )
-
-
-def bank_holiday_overlap_hours(start: dt.datetime, end: dt.datetime) -> float:
-    """Hours of [start, end) that fall on an Estonian public holiday, in start/end's own tzinfo."""
-    total = 0.0
-    day = start.date()
-    while day <= end.date():
-        if is_bank_holiday(day):
-            day_start = dt.datetime.combine(day, dt.time.min, tzinfo=start.tzinfo)
-            day_end = day_start + dt.timedelta(days=1)
-            overlap_start = max(start, day_start)
-            overlap_end = min(end, day_end)
-            if overlap_end > overlap_start:
-                total += (overlap_end - overlap_start).total_seconds() / 3600
-        day += dt.timedelta(days=1)
-    return total
 
 
 def main() -> None:
@@ -177,25 +115,17 @@ def main() -> None:
         schedule_ids = [s.strip() for s in args.schedules.split(",")]
 
     totals: dict[str, float] = {}
-    bank_holiday_totals: dict[str, float] = {}
     for schedule_id in schedule_ids:
-        time_zone, entries = get_schedule_detail(base_url, schedule_id, since, until, token)
-        location = ZoneInfo(time_zone)
-        for entry in entries:
-            start = dt.datetime.fromisoformat(entry["start"].replace("Z", "+00:00")).astimezone(location)
-            end = dt.datetime.fromisoformat(entry["end"].replace("Z", "+00:00")).astimezone(location)
-            name = entry["user"]["summary"]
-
+        for entry in get_rendered_entries(base_url, schedule_id, since, until, token):
+            start = dt.datetime.fromisoformat(entry["start"].replace("Z", "+00:00"))
+            end = dt.datetime.fromisoformat(entry["end"].replace("Z", "+00:00"))
             hours = (end - start).total_seconds() / 3600
+            name = entry["user"]["summary"]
             totals[name] = totals.get(name, 0.0) + hours
 
-            bh_hours = bank_holiday_overlap_hours(start, end)
-            bank_holiday_totals[name] = bank_holiday_totals.get(name, 0.0) + bh_hours
-
     print(f"On-call hours from {since} to {until} ({base_url})", file=sys.stderr)
-    print(f"{'Name':<25}{'Total Hours':>15}{'Bank Holiday Hours':>22}")
     for name in sorted(totals):
-        print(f"{name:<25}{totals[name]:>15.2f}{bank_holiday_totals.get(name, 0.0):>22.2f}")
+        print(f"{name}\t{totals[name]:.2f}")
 
 
 if __name__ == "__main__":
