@@ -17,6 +17,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set cache date
+        run: echo "CACHE_DATE=$(date -u +%Y-%m-%d)" >> "$GITHUB_ENV"
+
+      - name: Cache Trivy DB
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/trivy
+          key: ${{ runner.os }}-trivy-db-${{ env.CACHE_DATE }}
+          restore-keys: |
+            ${{ runner.os }}-trivy-db-
+
       - name: Run Trivy vulnerability, secret and misconfig scan
         uses: aquasecurity/trivy-action@v0.36.0
         with:
